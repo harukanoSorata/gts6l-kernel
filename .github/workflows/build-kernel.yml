@@ -19,12 +19,14 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu flex bison bc libssl-dev libelf-dev u-boot-tools cpio rsync
           aarch64-linux-gnu-gcc --version | head -1
 
-      - name: Clone mainline 6.12 (shallow)
+      - name: Download mainline 6.12 source
         run: |
           cd /mnt
-          git clone --depth 1 --branch linux-6.12.y https://github.com/gregkh/linux linux
+          curl -fL --retry 3 -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.116.tar.xz
+          tar -xf linux.tar.xz
+          mv linux-6.12.116 linux
           cd linux
-          git log -1 --oneline
+          make kernelversion || true
 
       - name: Apply device patches
         working-directory: /mnt/linux

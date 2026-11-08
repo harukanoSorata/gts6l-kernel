@@ -1,6 +1,6 @@
---- drivers/mfd/qcom-spmi-pmic.c.orig	2026-08-29 16:01:01.718917163 +0100
-+++ drivers/mfd/qcom-spmi-pmic.c	2026-08-29 16:01:50.783549120 +0100
-@@ -269,8 +269,30 @@
+--- a/drivers/mfd/qcom-spmi-pmic.c
++++ b/drivers/mfd/qcom-spmi-pmic.c
+@@ -269,8 +269,31 @@
  	/* Only the first slave id for a PMIC contains this information */
  	if (sdev->usid % ctx->num_usids == 0) {
  		ret = pmic_spmi_load_revid(regmap, &sdev->dev, &ctx->pmic);
@@ -24,7 +24,8 @@
 +			 * silently having no children.
 +			 */
 +			dev_warn(&sdev->dev,
-+				 "revid read failed (%d), continuing without it\n",
++				 "revid read failed (%d), continuing without it
++",
 +				 ret);
 +			ctx->pmic.type = PMIC_TYPE_VALUE;
 +			ctx->pmic.subtype = 0;

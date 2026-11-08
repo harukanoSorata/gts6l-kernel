@@ -37,10 +37,10 @@ jobs:
       - name: Download mainline 6.12 source
         working-directory: ${{ env.RUNDIR }}
         run: |
-          curl -fL --retry 3 -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.0.tar.xz
+          curl -fL --retry 3 -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.tar.xz
           tar -xf linux.tar.xz
           rm -f linux.tar.xz
-          mv linux-6.12.0 linux
+          mv linux-6.12 linux
           cd linux
           make kernelversion || true
 

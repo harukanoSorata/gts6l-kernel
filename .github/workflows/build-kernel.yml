@@ -22,7 +22,7 @@ jobs:
       - name: Clone mainline 6.12 (shallow)
         run: |
           cd /mnt
-          git clone --depth 1 --branch v6.12 https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git linux
+          git clone --depth 1 --branch linux-6.12.y https://github.com/gregkh/linux linux
           cd linux
           git log -1 --oneline
 

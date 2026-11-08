@@ -47,12 +47,13 @@ jobs:
       - name: Apply device patches
         working-directory: ${{ env.RUNDIR }}/linux
         run: |
+          set -e
           for p in $GITHUB_WORKSPACE/kernel/patches/*.patch; do
             case "$(basename $p)" in
-              *sm8250-sndcard*) echo "== SKIP $(basename $p) (audio, needs unpublished Cirrus symbols)"; continue;;
+              *sm8250-sndcard*|*cs48l32*) echo "== SKIP $(basename $p) (audio, needs unpublished Cirrus symbols)"; continue;;
             esac
             echo "== $(basename $p) =="
-            patch -p1 --forward < "$p" || echo "!! patch failed (continuing): $(basename $p)"
+            patch -p1 --forward < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; }
           done
 
       - name: Install device drivers

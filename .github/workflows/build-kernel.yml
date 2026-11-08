@@ -48,11 +48,16 @@ jobs:
         working-directory: ${{ env.RUNDIR }}/linux
         run: |
           set -e
+          # two patches use non a/ b/ headers (--- /tmp/... or --- ...orig) which GNU
+          # patch cannot resolve with -p1; give their target file explicitly.
+          # hunk bodies themselves are bentlybro's patches, byte for byte.
           for p in $GITHUB_WORKSPACE/kernel/patches/*.patch; do
-            case "$(basename $p)" in
-            esac
             echo "== $(basename $p) =="
-            patch -p1 --forward < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; }
+            case "$(basename $p)" in
+              adc-battery-*) patch --forward drivers/power/supply/generic-adc-battery.c < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; };;
+              mfd-qcom-spmi-*) patch --forward drivers/mfd/qcom-spmi-pmic.c < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; };;
+              *) patch -p1 --forward < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; };;
+            esac
           done
 
       - name: Install device drivers

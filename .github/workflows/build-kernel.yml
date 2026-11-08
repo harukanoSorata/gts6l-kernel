@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
-      - name: Checkout (this repo: config/patches/drivers/dts)
+      - name: "Checkout this repo (config/patches/drivers/dts)"
         uses: actions/checkout@v4
 
       - name: Install toolchain
@@ -46,7 +46,7 @@ jobs:
         working-directory: /mnt/linux
         run: |
           cp $GITHUB_WORKSPACE/kernel/dts/sm8150-samsung-gts6lwifi.dts arch/arm64/boot/dts/qcom/
-          echo "dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb" >> arch/arm64/boot/dts/qcom/Makefile
+          echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb' >> arch/arm64/boot/dts/qcom/Makefile
 
       - name: Configure
         working-directory: /mnt/linux

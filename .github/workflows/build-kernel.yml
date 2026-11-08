@@ -44,6 +44,20 @@ jobs:
           cd linux
           make kernelversion || true
 
+      - name: Install device drivers
+        working-directory: ${{ env.RUNDIR }}/linux
+        run: |
+          cp $GITHUB_WORKSPACE/kernel/drivers/fts1ba90a.c drivers/input/touchscreen/
+          echo "obj-y += fts1ba90a.o" >> drivers/input/touchscreen/Makefile
+          cp $GITHUB_WORKSPACE/kernel/drivers/sm5705_fuelgauge.c drivers/power/supply/
+          echo "obj-y += sm5705_fuelgauge.o" >> drivers/power/supply/Makefile
+
+      - name: Install device tree
+        working-directory: ${{ env.RUNDIR }}/linux
+        run: |
+          cp $GITHUB_WORKSPACE/kernel/dts/sm8150-samsung-gts6lwifi.dts arch/arm64/boot/dts/qcom/
+          echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb' >> arch/arm64/boot/dts/qcom/Makefile
+
       - name: Apply device patches
         working-directory: ${{ env.RUNDIR }}/linux
         run: |
@@ -58,6 +72,7 @@ jobs:
           for p in $GITHUB_WORKSPACE/kernel/patches/*.patch; do
             case "$(basename $p)" in
               *cs48l32*|*sm8250-sndcard*) echo "== SKIP $(basename $p) (audio; needs unpublished cs48l32 backport)"; continue;;
+              fts1ba90a-*) echo "== SKIP $(basename $p) (changes already contained in vendored fts1ba90a.c)"; continue;;
             esac
             echo "== $(basename $p) =="
             case "$(basename $p)" in
@@ -66,20 +81,6 @@ jobs:
               *) patch -p1 --forward < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; };;
             esac
           done
-
-      - name: Install device drivers
-        working-directory: ${{ env.RUNDIR }}/linux
-        run: |
-          cp $GITHUB_WORKSPACE/kernel/drivers/fts1ba90a.c drivers/input/touchscreen/
-          echo "obj-y += fts1ba90a.o" >> drivers/input/touchscreen/Makefile
-          cp $GITHUB_WORKSPACE/kernel/drivers/sm5705_fuelgauge.c drivers/power/supply/
-          echo "obj-y += sm5705_fuelgauge.o" >> drivers/power/supply/Makefile
-
-      - name: Install device tree
-        working-directory: ${{ env.RUNDIR }}/linux
-        run: |
-          cp $GITHUB_WORKSPACE/kernel/dts/sm8150-samsung-gts6lwifi.dts arch/arm64/boot/dts/qcom/
-          echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb' >> arch/arm64/boot/dts/qcom/Makefile
 
       - name: Configure
         working-directory: ${{ env.RUNDIR }}/linux

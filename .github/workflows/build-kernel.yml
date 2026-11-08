@@ -51,7 +51,14 @@ jobs:
           # two patches use non a/ b/ headers (--- /tmp/... or --- ...orig) which GNU
           # patch cannot resolve with -p1; give their target file explicitly.
           # hunk bodies themselves are bentlybro's patches, byte for byte.
+          # cs48l32 codec + sm8250 sndcard: audio chain. The CS48L32 codec driver
+          # is bentlybro's private 6.13->6.12 backport, not in his public repo and
+          # not in mainline 6.12 - these two cannot be applied or compiled on
+          # public sources. Skip until audio is wanted; everything else verbatim.
           for p in $GITHUB_WORKSPACE/kernel/patches/*.patch; do
+            case "$(basename $p)" in
+              *cs48l32*|*sm8250-sndcard*) echo "== SKIP $(basename $p) (audio; needs unpublished cs48l32 backport)"; continue;;
+            esac
             echo "== $(basename $p) =="
             case "$(basename $p)" in
               adc-battery-*) patch --forward drivers/power/supply/generic-adc-battery.c < "$p" || { echo "!! patch failed: $(basename $p)"; exit 1; };;

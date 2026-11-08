@@ -13,6 +13,21 @@ jobs:
       - name: "Checkout this repo (config/patches/drivers/dts)"
         uses: actions/checkout@v4
 
+      - name: Pick a build directory with enough space
+        run: |
+          set -e
+          RUNDIR="$GITHUB_WORKSPACE/build"
+          if [ -d /mnt ] && touch /mnt/.wtest 2>/dev/null; then
+            rm -f /mnt/.wtest
+            MNTFREE=$(df -BG --output=avail /mnt | tail -1 | tr -dc '0-9')
+            WSFREE=$(df -BG --output=avail "$GITHUB_WORKSPACE" | tail -1 | tr -dc '0-9')
+            if [ "$MNTFREE" -gt "$WSFREE" ]; then RUNDIR=/mnt/build; fi
+          fi
+          mkdir -p "$RUNDIR"
+          echo "RUNDIR=$RUNDIR" >> "$GITHUB_ENV"
+          echo "使用构建目录: $RUNDIR"
+          df -h "$RUNDIR"
+
       - name: Install toolchain
         run: |
           sudo apt-get update
@@ -20,16 +35,17 @@ jobs:
           aarch64-linux-gnu-gcc --version | head -1
 
       - name: Download mainline 6.12 source
+        working-directory: ${{ env.RUNDIR }}
         run: |
-          cd /mnt
           curl -fL --retry 3 -o linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.116.tar.xz
           tar -xf linux.tar.xz
+          rm -f linux.tar.xz
           mv linux-6.12.116 linux
           cd linux
           make kernelversion || true
 
       - name: Apply device patches
-        working-directory: /mnt/linux
+        working-directory: ${{ env.RUNDIR }}/linux
         run: |
           for p in $GITHUB_WORKSPACE/kernel/patches/*.patch; do
             echo "== $(basename $p) =="
@@ -37,7 +53,7 @@ jobs:
           done
 
       - name: Install device drivers
-        working-directory: /mnt/linux
+        working-directory: ${{ env.RUNDIR }}/linux
         run: |
           cp $GITHUB_WORKSPACE/kernel/drivers/fts1ba90a.c drivers/input/touchscreen/
           echo "obj-y += fts1ba90a.o" >> drivers/input/touchscreen/Makefile
@@ -45,35 +61,35 @@ jobs:
           echo "obj-y += sm5705_fuelgauge.o" >> drivers/power/supply/Makefile
 
       - name: Install device tree
-        working-directory: /mnt/linux
+        working-directory: ${{ env.RUNDIR }}/linux
         run: |
           cp $GITHUB_WORKSPACE/kernel/dts/sm8150-samsung-gts6lwifi.dts arch/arm64/boot/dts/qcom/
           echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb' >> arch/arm64/boot/dts/qcom/Makefile
 
       - name: Configure
-        working-directory: /mnt/linux
+        working-directory: ${{ env.RUNDIR }}/linux
         run: |
           cp $GITHUB_WORKSPACE/kernel/config/gts6lwifi_defconfig-full arch/arm64/configs/gts6lwifi_defconfig
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gts6lwifi_defconfig
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
 
       - name: Build Image + dtbs + modules
-        working-directory: /mnt/linux
+        working-directory: ${{ env.RUNDIR }}/linux
         run: |
           make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs
           make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_install INSTALL_MOD_PATH=/mnt/mods
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_install INSTALL_MOD_PATH=$RUNDIR/mods
           ls -lh arch/arm64/boot/Image
           ls -lh arch/arm64/boot/dts/qcom/sm8150-samsung-gts6lwifi.dtb
 
       - name: Pack artifacts
         run: |
-          cd /mnt/linux
+          cd $RUNDIR/linux
           mkdir -p out
           cp arch/arm64/boot/Image out/
           cp arch/arm64/boot/dts/qcom/sm8150-samsung-gts6lwifi.dtb out/gts6.dtb
           cp .config out/kernel.config
-          tar -C /mnt/mods -cf out/modules.tar lib/modules
+          tar -C $RUNDIR/mods -cf out/modules.tar lib/modules
           gzip -9 out/modules.tar || true
           ls -lh out/
 
@@ -81,5 +97,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gts6lwifi-kernel
-          path: /mnt/linux/out/
+          path: ${{ env.RUNDIR }}/linux/out/
           retention-days: 90
